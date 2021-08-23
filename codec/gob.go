@@ -15,7 +15,13 @@ type GobCodec struct {
 }
 
 func NewGobCodec(conn io.ReadWriteCloser) Codec {
-	return nil
+	buf := bufio.NewWriter(conn)
+	return &GobCodec{
+		conn: conn,
+		buf:  buf,
+		dec:  gob.NewDecoder(conn),
+		enc:  gob.NewEncoder(buf),
+	}
 }
 
 func (c *GobCodec) ReadHeader(h *Header) error {
