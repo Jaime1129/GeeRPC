@@ -1,10 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"github.com/Jaime1129/GeeRPC/codec"
 	"io"
 	"log"
 	"reflect"
+	"sync"
 )
 
 type request struct {
@@ -36,4 +38,12 @@ func (s *Server) readRequest(cc codec.Codec) (*request, error) {
 
 	// construct request
 	return req, nil
+}
+
+func (s *Server) handleRequest(cc codec.Codec, req *request, sending *sync.Mutex, wg *sync.WaitGroup) {
+	// TODO should call registered rpc methods to get the right replyv
+	defer wg.Done()
+	log.Println(req.h, req.argv.Elem())
+	req.replyv = reflect.ValueOf(fmt.Sprintf("resp %d", req.h.Seq))
+	s.sendResponse(cc, req.h, req.replyv.Interface(), sending)
 }

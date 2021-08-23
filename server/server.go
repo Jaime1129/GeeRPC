@@ -66,9 +66,24 @@ func (s *Server) HandleConn(conn io.ReadWriteCloser) {
 // ApplyCodec applies Codec methods to decode request sent via connection, and then process them by invoking request
 // handler in dedicated go routines.
 func (s *Server) ApplyCodec(cc codec.Codec) {
-	sending := sync.Mutex{}
-	wg := sync.WaitGroup{}
+	sending := &sync.Mutex{} // protect write access for response
+	wg := &sync.WaitGroup{}
 	for {
-
+		req, err := s.readRequest(cc)
+		if err != nil {
+			if req == nil {
+				break // cannot recover if request is nil, so close the connection
+			}
+			req.h.Error = err.Error()
+			// send error response
+			s.sendResponse(cc, req.h, InvalidRequest, sending)
+			continue
+		}
+		wg.Add(1)
+		go s.handleRequest(cc, req, sending, wg)
 	}
+
+	// wait for all ongoing requests have been processed
+	wg.Wait()
+	_ = cc.Close()
 }
