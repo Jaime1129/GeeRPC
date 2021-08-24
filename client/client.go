@@ -151,3 +151,48 @@ func (client *Client) terminatePendingCalls(err error) {
 		call.done()
 	}
 }
+
+func (client *Client) send(call *Call) {
+	// acquire exclusive write access to connection to ensure sending a complete request
+	client.sending.Lock()
+	defer client.sending.Unlock()
+
+	// register this call
+	seq, err := client.registerCall(call)
+	if err != nil {
+		call.Error = err
+		call.done()
+		return
+	}
+
+	// prepare request header
+	// as header is already reused, it's necessary to init every field
+	client.header.ServiceMethod = call.ServiceMethod
+	client.header.Seq = seq
+	client.header.Error = ""
+
+	// encode and send request
+	err = client.cc.Write(&client.header, call.Args)
+	if err != nil {
+		call := client.removeCall(seq)
+		// if call is nil, Write may partially failed
+		if call != nil {
+			call.Error = err
+			call.done()
+		}
+	}
+}
+
+// Go creates a Call struct and sends which to server asynchronously.
+// The Call struct carrying reply can be received from Call.Done
+func (client *Client) Go(serviceMethod string, args, reply interface{}) *Call {
+	call := &Call{
+		ServiceMethod: serviceMethod,
+		Args: args,
+		Reply: reply,
+		Done: make(chan *Call, 10),
+	}
+
+	client.send(call)
+	return call
+}
