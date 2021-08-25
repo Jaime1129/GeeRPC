@@ -117,11 +117,12 @@ func (client *Client) IsAvailable() bool {
 
 // registerCall add new Call into pending Calls
 func (client *Client) registerCall(call *Call) (uint64, error) {
-	client.mu.Lock()
-	defer client.mu.Unlock()
 	if !client.IsAvailable() {
 		return 0, ErrShutdown
 	}
+
+	client.mu.Lock()
+	defer client.mu.Unlock()
 
 	call.Seq = client.seq
 	client.pending[call.Seq] = call
@@ -195,4 +196,10 @@ func (client *Client) Go(serviceMethod string, args, reply interface{}) *Call {
 
 	client.send(call)
 	return call
+}
+
+// Call internally invokes Go to send request to server synchronously
+func (client *Client) Call(serviceMethod string, args, reply interface{}) error {
+	call := <- client.Go(serviceMethod, args, reply).Done
+	return call.Error
 }
