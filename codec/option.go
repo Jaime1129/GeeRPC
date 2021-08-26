@@ -1,5 +1,7 @@
 package codec
 
+import "time"
+
 const MagicNumber = 0x3bef5c
 
 /*
@@ -11,13 +13,14 @@ const MagicNumber = 0x3bef5c
 
 // Option serves as the first segmentation of GeeRPC messages, which is of fixed size encoding type Json
 type Option struct {
-	MagicNumber int  // MagicNumber indicates this is a GeeRPC message
-	CodecType   Type // the client can specify different CodecType
+	MagicNumber   int           // MagicNumber indicates this is a GeeRPC message
+	CodecType     Type          // the client can specify different CodecType
+	ConnTimeout   time.Duration // 0 means no timeout
+	HandleTimeout time.Duration
 }
 
 var DefaultOption = &Option{
 	MagicNumber: MagicNumber,
 	CodecType:   GobType,
+	ConnTimeout: 10 * time.Second,
 }
-
-
