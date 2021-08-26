@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -189,9 +190,9 @@ func (client *Client) send(call *Call) {
 func (client *Client) Go(serviceMethod string, args, reply interface{}) *Call {
 	call := &Call{
 		ServiceMethod: serviceMethod,
-		Args: args,
-		Reply: reply,
-		Done: make(chan *Call, 10),
+		Args:          args,
+		Reply:         reply,
+		Done:          make(chan *Call, 10),
 	}
 
 	client.send(call)
@@ -199,7 +200,15 @@ func (client *Client) Go(serviceMethod string, args, reply interface{}) *Call {
 }
 
 // Call internally invokes Go to send request to server synchronously
-func (client *Client) Call(serviceMethod string, args, reply interface{}) error {
-	call := <- client.Go(serviceMethod, args, reply).Done
+func (client *Client) Call(ctx context.Context, serviceMethod string, args, reply interface{}) error {
+	call := client.Go(serviceMethod, args, reply)
+
+	select {
+	case <-ctx.Done():
+		client.removeCall(call.Seq)
+		return fmt.Errorf("rpc client: call failed: %s", ctx.Err().Error())
+	case call = <-call.Done:
+		return call.Error
+	}
 	return call.Error
 }

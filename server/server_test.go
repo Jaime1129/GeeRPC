@@ -48,7 +48,7 @@ func TestServer_Accept(t *testing.T) {
 				Num2: seq*seq,
 			}
 			var reply int
-			if err := cli.Call("Foo.Sum", args, &reply); err != nil {
+			if err := cli.Call(nil, "Foo.Sum", args, &reply); err != nil {
 				log.Fatal("call Foo.Sum err=", err)
 			}
 			log.Println("reply: ", reply)
