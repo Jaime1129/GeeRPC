@@ -93,9 +93,9 @@ func (s *Server) ApplyCodec(cc codec.Codec) {
 
 // Register registers a service which provides rpc method implementation
 func (s *Server) Register(rcvr interface{}) error {
-	srv := NewService(rcvr)
-	if _, dup := s.serviceMap.LoadOrStore(srv.Name(), s); dup {
-		return errors.New("rpc server: service is already registered" + srv.Name())
+	svc := NewService(rcvr)
+	if _, dup := s.serviceMap.LoadOrStore(svc.Name(), svc); dup {
+		return errors.New("rpc server: service is already registered" + svc.Name())
 	}
 
 	return nil

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"github.com/Jaime1129/GeeRPC/client"
 	"log"
 	"net"
@@ -11,14 +10,20 @@ import (
 )
 
 func startServer(addr chan<- string) {
+	var foo Foo
+	err := Register(&foo)
+	if err != nil {
+		log.Fatalf("register service err=%s", err.Error())
+	}
+
 	l, err := net.Listen("tcp", ":0")
 	if err != nil {
 		log.Fatal("listen err=", err)
 	}
-	log.Println("start listing addr=", l.Addr().String())
+
 	addr <- l.Addr().String()
-	server := NewServer()
-	server.Accept(l)
+	log.Println("start listing addr=", l.Addr().String())
+	Accept(l)
 }
 
 func TestServer_Accept(t *testing.T) {
@@ -38,8 +43,11 @@ func TestServer_Accept(t *testing.T) {
 		wg.Add(1)
 		go func(seq int) {
 			defer wg.Done()
-			args := fmt.Sprintf("req %d", seq)
-			var reply string
+			args := Args{
+				Num1: seq,
+				Num2: seq*seq,
+			}
+			var reply int
 			if err := cli.Call("Foo.Sum", args, &reply); err != nil {
 				log.Fatal("call Foo.Sum err=", err)
 			}

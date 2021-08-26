@@ -61,7 +61,6 @@ func (s *Server) readRequest(cc codec.Codec) (*request, error) {
 func (s *Server) handleRequest(cc codec.Codec, req *request, sending *sync.Mutex, wg *sync.WaitGroup) {
 	defer wg.Done()
 	// call registered rpc methods to get the right replyv
-	log.Println(req.h, req.argv.Elem())
 	err := req.svc.call(req.mtype, req.argv, req.replyv)
 	if err != nil {
 		req.h.Error = err.Error()
