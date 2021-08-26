@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"github.com/Jaime1129/GeeRPC/util"
 	"reflect"
 	"testing"
 )
@@ -23,18 +23,12 @@ func (f Foo) sum(args Args, reply *int) error {
 	return nil
 }
 
-func _assert(condition bool, msg string, v ...interface{}) {
-	if !condition {
-		panic(fmt.Sprintf("assertion failed: "+msg, v...))
-	}
-}
-
 func Test_service(t *testing.T) {
 	var foo Foo
 
 	s := NewService(&foo)
-	_assert(s.method["Sum"] != nil, "fail to register Foo.Sum")
-	_assert(s.method["sum"] == nil, "unexported functions shouldn't be registered")
+	util.Assert(s.method["Sum"] != nil, "fail to register Foo.Sum")
+	util.Assert(s.method["sum"] == nil, "unexported functions shouldn't be registered")
 }
 
 func Test_service_call(t *testing.T) {
@@ -46,5 +40,5 @@ func Test_service_call(t *testing.T) {
 	replyv := mType.newReplyv()
 	argv.Set(reflect.ValueOf(Args{Num1: 1, Num2: 2}))
 	err := s.call(mType, argv, replyv)
-	_assert(err==nil && *replyv.Interface().(*int) == 3 && mType.NumCalls() == 1, "failed to call Foo.Sum")
+	util.Assert(err==nil && *replyv.Interface().(*int) == 3 && mType.NumCalls() == 1, "failed to call Foo.Sum")
 }
