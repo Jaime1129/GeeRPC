@@ -2,14 +2,17 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/Jaime1129/GeeRPC/codec"
 	"io"
 	"log"
 	"net"
+	"strings"
 	"sync"
 )
 
 type Server struct {
+	serviceMap sync.Map
 }
 
 func NewServer() *Server {
@@ -17,7 +20,7 @@ func NewServer() *Server {
 }
 
 var DefaultServer = NewServer()
-var InvalidRequest = struct {}{}
+var InvalidRequest = struct{}{}
 
 // Accept waits on listener for new connections.
 // For each handle each newly created connections in new go routine.
@@ -87,3 +90,43 @@ func (s *Server) ApplyCodec(cc codec.Codec) {
 	wg.Wait()
 	_ = cc.Close()
 }
+
+// Register registers a service which provides rpc method implementation
+func (s *Server) Register(rcvr interface{}) error {
+	srv := NewService(rcvr)
+	if _, dup := s.serviceMap.LoadOrStore(srv.Name(), s); dup {
+		return errors.New("rpc server: service is already registered" + srv.Name())
+	}
+
+	return nil
+}
+
+func Register(rcvr interface{}) error {
+	return DefaultServer.Register(rcvr)
+}
+
+// findService returns the service and method stored in Server's map
+func (s *Server) findService(serviceMethod string) (svc *service, mtype *methodType, err error) {
+	split := strings.Split(serviceMethod, ".")
+	if len(split) != 2 {
+		err = errors.New("rpc server: invalid serviceMethod " + serviceMethod)
+		return
+	}
+
+	svcName, methodName := split[0], split[1]
+	svcVal, ok := s.serviceMap.Load(svcName)
+	if !ok {
+		err = errors.New("rpc server: service not found " + svcName)
+		return
+	}
+
+	svc = svcVal.(*service)
+	mtype, ok = svc.method[methodName]
+	if !ok {
+		err = errors.New("rpc server: method not found" + methodName)
+		return
+	}
+
+	return
+}
+

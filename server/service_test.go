@@ -1,4 +1,4 @@
-package service
+package server
 
 import (
 	"fmt"
@@ -32,14 +32,14 @@ func _assert(condition bool, msg string, v ...interface{}) {
 func Test_service(t *testing.T) {
 	var foo Foo
 
-	s := newService(&foo)
+	s := NewService(&foo)
 	_assert(s.method["Sum"] != nil, "fail to register Foo.Sum")
 	_assert(s.method["sum"] == nil, "unexported functions shouldn't be registered")
 }
 
 func Test_service_call(t *testing.T) {
 	var foo Foo
-	s := newService(&foo)
+	s := NewService(&foo)
 	mType := s.method["Sum"]
 
 	argv := mType.newArgv()

@@ -1,4 +1,4 @@
-package service
+package server
 
 import (
 	"go/ast"
@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 )
 
-/* TODO: It might be better for newService to only receive an instance which implements a specific interface as argument.
+/* TODO: It might be better for NewService to only receive an instance which implements a specific interface as argument.
 e.g.
 type Processor interface {
 	Process(argv, replyv interface) error
@@ -22,8 +22,8 @@ type service struct {
 	method map[string]*methodType // where exported RPC methods of the functional instance are stored
 }
 
-// newService receives a pointer of the actual functional instance, and create service instance accordingly.
-func newService(rcvr interface{}) *service {
+// NewService receives a pointer of the actual functional instance, and create service instance accordingly.
+func NewService(rcvr interface{}) *service {
 	s := new(service)
 	s.rcvr = reflect.ValueOf(rcvr)
 	s.name = reflect.Indirect(s.rcvr).Type().Name()
@@ -84,4 +84,8 @@ func (s *service) call(m *methodType, argv, replyv reflect.Value) error {
 		return errInter.(error)
 	}
 	return nil
+}
+
+func (s *service) Name() string {
+	return s.name
 }
