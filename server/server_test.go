@@ -1,17 +1,20 @@
 package server
 
 import (
+	"context"
 	"github.com/Jaime1129/GeeRPC/client"
+	"github.com/Jaime1129/GeeRPC/codec"
+	"github.com/Jaime1129/GeeRPC/util"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 )
 
-func startServer(addr chan<- string) {
-	var foo Foo
-	err := Register(&foo)
+func startServer(svc interface{}, addr chan<- string) {
+	err := Register(svc)
 	if err != nil {
 		log.Fatalf("register service err=%s", err.Error())
 	}
@@ -28,7 +31,8 @@ func startServer(addr chan<- string) {
 
 func TestServer_Accept(t *testing.T) {
 	addr := make(chan string)
-	go startServer(addr)
+	var foo Foo
+	go startServer(&foo, addr)
 
 	cli, _ := client.Dial("tcp", <-addr)
 	defer func() {
@@ -45,14 +49,48 @@ func TestServer_Accept(t *testing.T) {
 			defer wg.Done()
 			args := Args{
 				Num1: seq,
-				Num2: seq*seq,
+				Num2: seq * seq,
 			}
 			var reply int
-			if err := cli.Call(nil, "Foo.Sum", args, &reply); err != nil {
+			if err := cli.Call(context.Background(), "Foo.Sum", args, &reply); err != nil {
 				log.Fatal("call Foo.Sum err=", err)
 			}
 			log.Println("reply: ", reply)
 		}(i)
 	}
 	wg.Wait()
+}
+
+type Bar int
+
+func (b Bar) Timeout(argv int, reply *int) error {
+	time.Sleep(2 * time.Second)
+	*reply = argv + 1
+	return nil
+}
+
+func TestServer_Call(t *testing.T) {
+	t.Parallel()
+	addrCh := make(chan string)
+	var bar Bar
+	go startServer(&bar, addrCh)
+
+	addr := <-addrCh
+	time.Sleep(time.Second)
+
+	t.Run("client timeout", func(t *testing.T) {
+		client, _ := client.Dial("tcp", addr)
+		ctx, _ := context.WithTimeout(context.Background(), time.Second)
+		var reply int
+		err := client.Call(ctx, "Bar.Timeout", 1, &reply)
+		util.Assert(err != nil && strings.Contains(err.Error(), ctx.Err().Error()), "expect client call timeout")
+	})
+
+	t.Run("server handle timeout", func(t *testing.T) {
+		client, _ := client.Dial("tcp", addr, &codec.Option{HandleTimeout: time.Second})
+		var reply int
+		// client set not timeout in context
+		err := client.Call(context.Background(), "Bar.Timeout", 1, &reply)
+		util.Assert(err != nil && strings.Contains(err.Error(), "handle timeout"), "expect handling timeout")
+	})
 }

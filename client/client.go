@@ -201,6 +201,9 @@ func (client *Client) Go(serviceMethod string, args, reply interface{}) *Call {
 
 // Call internally invokes Go to send request to server synchronously
 func (client *Client) Call(ctx context.Context, serviceMethod string, args, reply interface{}) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	call := client.Go(serviceMethod, args, reply)
 
 	select {

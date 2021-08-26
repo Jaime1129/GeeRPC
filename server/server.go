@@ -9,6 +9,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -63,12 +64,12 @@ func (s *Server) HandleConn(conn io.ReadWriteCloser) {
 	}
 
 	// construct Codec and apply to connection instance
-	s.ApplyCodec(f(conn))
+	s.ApplyCodec(f(conn), opt.HandleTimeout)
 }
 
 // ApplyCodec applies Codec methods to decode request sent via connection, and then process them by invoking request
 // handler in dedicated go routines.
-func (s *Server) ApplyCodec(cc codec.Codec) {
+func (s *Server) ApplyCodec(cc codec.Codec, timeout time.Duration) {
 	sending := &sync.Mutex{} // protect write access for response
 	wg := &sync.WaitGroup{}
 	for {
@@ -83,7 +84,7 @@ func (s *Server) ApplyCodec(cc codec.Codec) {
 			continue
 		}
 		wg.Add(1)
-		go s.handleRequest(cc, req, sending, wg)
+		go s.handleRequest(cc, req, sending, wg, timeout)
 	}
 
 	// wait for all ongoing requests have been processed
