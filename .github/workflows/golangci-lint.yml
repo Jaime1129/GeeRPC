@@ -15,9 +15,9 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v2
       - name: Cache dependencies
+          uses: actions/cache@v2
           env:
             cache-name: cache-go-models
-          uses: actions/cache@v2
           with:
             path: ~/.cache
             key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/go.mod') }}
