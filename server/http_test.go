@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"sync"
-	"testing"
 	"time"
 )
 
@@ -57,7 +56,7 @@ func call(addrCh chan string) {
 	wg.Wait()
 }
 
-func Test(t *testing.T) {
+func main() {
 	log.SetFlags(0)
 	ch := make(chan string)
 	go call(ch)
