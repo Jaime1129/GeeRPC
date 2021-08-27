@@ -213,5 +213,4 @@ func (client *Client) Call(ctx context.Context, serviceMethod string, args, repl
 	case call = <-call.Done:
 		return call.Error
 	}
-	return call.Error
 }

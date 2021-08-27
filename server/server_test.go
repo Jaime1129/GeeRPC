@@ -82,7 +82,8 @@ func TestServer_Call(t *testing.T) {
 
 	t.Run("client timeout", func(t *testing.T) {
 		client, _ := client.Dial("tcp", addr)
-		ctx, _ := context.WithTimeout(context.Background(), time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
 		var reply int
 		err := client.Call(ctx, "Bar.Timeout", 1, &reply)
 		util.Assert(err != nil && strings.Contains(err.Error(), ctx.Err().Error()), "expect client call timeout")
@@ -108,7 +109,7 @@ func Test_XDial(t *testing.T) {
 		_ = os.Remove(addr)
 		l, err := net.Listen("unix", addr)
 		if err != nil {
-			t.Fatal("failed to listen unix socket")
+			log.Fatal("failed to listen unix socket")
 		}
 		ch <- struct{}{}
 		Accept(l)
