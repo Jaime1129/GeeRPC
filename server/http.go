@@ -12,6 +12,8 @@ const ()
 func (s *Server) HandleHTTP() {
 	// Register HTTP Handler to particular path
 	http.Handle(common.DefaultRPCPath, s)
+	http.Handle(common.DefaultDebugPath, debugHTTP{Server: s})
+	log.Println("rpc server debug path: ", common.DefaultDebugPath)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
