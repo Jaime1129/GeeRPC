@@ -7,6 +7,8 @@ import (
 	"github.com/Jaime1129/GeeRPC/util"
 	"log"
 	"net"
+	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -93,4 +95,26 @@ func TestServer_Call(t *testing.T) {
 		err := client.Call(context.Background(), "Bar.Timeout", 1, &reply)
 		util.Assert(err != nil && strings.Contains(err.Error(), "handle timeout"), "expect handling timeout")
 	})
+}
+
+func Test_XDial(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		return
+	}
+
+	ch := make(chan struct{})
+	addr := "/tmp/geerpc.sock"
+	go func() {
+		_ = os.Remove(addr)
+		l, err := net.Listen("unix", addr)
+		if err != nil {
+			t.Fatal("failed to listen unix socket")
+		}
+		ch <- struct{}{}
+		Accept(l)
+	}()
+
+	<-ch
+	_, err := client.XDial("unix@" + addr)
+	util.Assert(err == nil, "failed to connect unix socket")
 }

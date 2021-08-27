@@ -1,20 +1,17 @@
 package server
 
 import (
+	"github.com/Jaime1129/GeeRPC/common"
 	"io"
 	"log"
 	"net/http"
 )
 
-const (
-	connected = "200 Connected to Gee RPC"
-	defaultRPCPath   = "/_geeprc_"
-	defaultDebugPath = "/debug/geerpc"
-)
+const ()
 
 func (s *Server) HandleHTTP() {
 	// Register HTTP Handler to particular path
-	http.Handle(defaultRPCPath, s)
+	http.Handle(common.DefaultRPCPath, s)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -33,7 +30,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	_, _ = io.WriteString(conn, "HTTP/1.0"+connected+"\n\n")
+	// write success response
+	_, _ = io.WriteString(conn, "HTTP/1.0 "+common.Connected+"\n\n")
 	// start exchanging Options and messages
 	s.HandleConn(conn)
 }
@@ -41,4 +39,3 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func HandleHTTP() {
 	DefaultServer.HandleHTTP()
 }
-
