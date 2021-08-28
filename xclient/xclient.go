@@ -5,6 +5,7 @@ import (
 	"github.com/Jaime1129/GeeRPC/client"
 	"github.com/Jaime1129/GeeRPC/codec"
 	"io"
+	"reflect"
 	"sync"
 )
 
@@ -80,4 +81,45 @@ func (xc *XClient) Call(ctx context.Context, serviceMethod string, args, reply i
 	}
 
 	return xc.call(rpcAddr, ctx, serviceMethod, args, reply)
+}
+
+func (xc *XClient) Broadcast(ctx context.Context, serviceMethod string, args, reply interface{}) error {
+	servers, err := xc.d.GetAll()
+	if err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var e error
+
+	replyDone := reply == nil
+	ctx, cancel := context.WithCancel(ctx)
+	for _, rpcAddr := range servers {
+		wg.Add(1)
+		go func(addr string) {
+			defer wg.Done()
+
+			var clonedReply interface{}
+			if reply != nil {
+				clonedReply = reflect.New(reflect.TypeOf(reply).Elem()).Interface() // TODO test
+			}
+			err := xc.call(addr, ctx, serviceMethod, args, clonedReply)
+			mu.Lock()
+			defer mu.Unlock()
+			if err != nil && e == nil {
+				e = err
+				cancel()
+				return
+			}
+			if err == nil && !replyDone {
+				reflect.ValueOf(reply).Elem().Set(reflect.ValueOf(clonedReply).Elem())
+				replyDone = true
+			}
+		}(rpcAddr)
+	}
+
+	wg.Wait()
+
+	return e
 }
