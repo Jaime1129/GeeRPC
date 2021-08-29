@@ -1,7 +1,10 @@
 package registry
 
 import (
+	"log"
+	"net/http"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -20,6 +23,7 @@ type ServerItem struct {
 const (
 	defaultPath    = "/_geerpc_/registry"
 	defaultTimeout = 5 * time.Second
+	serverHTTPHead = "X-Geerpc-Servers"
 )
 
 func New(timeout time.Duration) *GeeRegistry {
@@ -61,4 +65,32 @@ func (r *GeeRegistry) aliveServers() []string {
 
 	sort.Strings(alive)
 	return alive
+}
+
+func (r *GeeRegistry) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case "GET":
+		// keep it simple, write servers in response header
+		w.Header().Set(serverHTTPHead, strings.Join(r.aliveServers(), ","))
+	case "POST":
+		// keep it simple, extract server from request header
+		addr := req.Header.Get(serverHTTPHead)
+		if addr == "" {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		r.putServer(addr)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func (r *GeeRegistry) HandleHTTP(registryPath string) {
+	http.Handle(registryPath, r)
+	log.Println("rpc registry path:", registryPath)
+}
+
+func HandleHTTP(registryPath string) {
+	DefaultGeeRegistry.HandleHTTP(registryPath)
 }
