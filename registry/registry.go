@@ -22,7 +22,7 @@ type ServerItem struct {
 
 const (
 	defaultPath    = "/_geerpc_/registry"
-	defaultTimeout = 5 * time.Second
+	defaultTimeout = 5 * time.Minute
 	serverHTTPHead = "X-Geerpc-Servers"
 )
 
@@ -91,6 +91,6 @@ func (r *GeeRegistry) HandleHTTP(registryPath string) {
 	log.Println("rpc registry path:", registryPath)
 }
 
-func HandleHTTP(registryPath string) {
-	DefaultGeeRegistry.HandleHTTP(registryPath)
+func HandleHTTP() {
+	DefaultGeeRegistry.HandleHTTP(defaultPath)
 }
